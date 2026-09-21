@@ -7,8 +7,9 @@ import (
 
 type Server struct {
 	DatabasePool *pgxpool.Pool
+	JWTSecret    string
 }
 
 func (s *Server) Ping(c *gin.Context) {
-	c.JSON(200, gin.H{"message": "pong!"})// ping pong !
+	c.JSON(200, gin.H{"message": "pong!"}) // ping pong !
 }

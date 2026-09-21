@@ -23,8 +23,24 @@ func (s *Server) RegisterHandler(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(201, gin.H{"message": "operationSuccessful", "id": newUser.ID})
+	ctx.JSON(201, gin.H{"message": "Operation successful", "id": newUser.ID})
 
 }
+func (s *Server) LoginHandler(ctx *gin.Context) {
+	var req LoginRequest
+	bindErr := ctx.ShouldBindJSON(&req)
+	if bindErr != nil {
+		ctx.JSON(400, gin.H{"error": bindErr.Error()})
+		return
+	}
 
+	tknAssigned, tknErr := service.LoginUser(req.Email, req.Password, s.DatabasePool, ctx.Request.Context(), s.JWTSecret)
 
+	if tknErr != nil {
+		ctx.JSON(401, gin.H{"error": tknErr.Error()})
+		return
+	}
+
+	ctx.JSON(201, gin.H{"message": "Operation successful", "token": tknAssigned})
+
+}
