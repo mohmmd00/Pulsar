@@ -8,15 +8,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
+	"github.com/mohmmd00/Pulsar/dispatcher/internal/handlers"
 )
-type server struct {
-	databasePool *pgxpool.Pool
-}
-
-
-func (s *server) ping(c *gin.Context){
-	c.JSON(200, gin.H{"message": "pong!",})
-}
 
 func main() {
 	envLoadErr := godotenv.Load(".env")
@@ -30,14 +23,12 @@ func main() {
 		log.Fatal("Error crafting connection to db")
 	}
 
-	srv := &server{databasePool: dbPool}
-
-
+	srv := &handlers.Server{DatabasePool: dbPool}
 
 	defer dbPool.Close() // open until main returns
 
 	router := gin.Default()
-	router.GET("/ping", srv.ping)
+	router.GET("/ping", srv.Ping)
 
 	router.Run(os.Getenv("API_PORT"))
 
