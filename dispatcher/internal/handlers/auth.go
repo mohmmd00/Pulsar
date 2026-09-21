@@ -15,7 +15,7 @@ func (s *Server) RegisterHandler(ctx *gin.Context) {
 		return
 	}
 
-	//service layer then repositooy layer
+	//service layer then repository layer
 	newUser, regUsrErr := service.RegisterUser(req.Email, req.Password, s.DatabasePool, ctx.Request.Context())
 
 	if regUsrErr != nil {
@@ -26,3 +26,5 @@ func (s *Server) RegisterHandler(ctx *gin.Context) {
 	ctx.JSON(201, gin.H{"message": "operationSuccessful", "id": newUser.ID})
 
 }
+
+
