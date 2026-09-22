@@ -42,6 +42,8 @@ func main() {
 
 	router.POST("/login", srv.LoginHandler)
 
+	router.POST("/notifications", middleware.AuthMiddleware(srv.JWTSecret), srv.CreateNotificationHandler)
+
 	// router run
 	router.Run(os.Getenv("API_PORT"))
 
