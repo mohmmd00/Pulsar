@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/mohmmd00/Pulsar/dispatcher/internal/handlers"
+	"github.com/mohmmd00/Pulsar/dispatcher/internal/middleware"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -34,6 +35,8 @@ func main() {
 
 	//endpoints
 	router.GET("/ping", srv.Ping)
+
+	router.GET("/me", middleware.AuthMiddleware(srv.JWTSecret), srv.MeHandler)
 
 	router.POST("/register", srv.RegisterHandler)
 
