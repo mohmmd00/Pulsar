@@ -29,7 +29,7 @@ func (s *Server) CreateNotificationHandler(ctx *gin.Context) {
 	}
 
 	//service layer
-	newNote, crtNoteErr := service.SubmitNotification(userID, req.Channel, req.Recipient, req.Message, s.DatabasePool, ctx.Request.Context())
+	newNote, crtNoteErr := service.SubmitNotification(userID, req.Channel, req.Recipient, req.Message, s.DatabasePool, s.NatsConn, ctx.Request.Context())
 	if crtNoteErr != nil {
 		ctx.JSON(400, gin.H{"error": crtNoteErr.Error()})
 		return

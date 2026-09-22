@@ -11,23 +11,33 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
+	"github.com/nats-io/nats.go"
 )
 
 func main() {
+
 	envLoadErr := godotenv.Load(".env")
 	if envLoadErr != nil {
 		log.Fatal("Error loading .env file")
 	}
 
-	databaseUrls := os.Getenv("DATABASE_URL")
-	jwtSecret := os.Getenv("JWT_SECRET")
-
-	dbPool, err := pgxpool.New(context.Background(), databaseUrls)
+	natsConn, err := nats.Connect(os.Getenv("NATS_URL"))
 	if err != nil {
-		log.Fatal("Error crafting connection to db") // this loog using os.exit(1) so it will crash if used
+		log.Fatal("Error connecting to NATS.")
+	}
+	defer natsConn.Close()
+
+	dbPool, err := pgxpool.New(context.Background(), os.Getenv("DATABASE_URL"))
+	if err != nil {
+		log.Fatal("Error crafting connection to db.") // this loog using os.exit(1) so it will crash if used
 	}
 
-	srv := &handlers.Server{DatabasePool: dbPool, JWTSecret: jwtSecret}
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		log.Fatal("Error recieving Jwt secret.")
+	}
+
+	srv := &handlers.Server{DatabasePool: dbPool, JWTSecret: jwtSecret, NatsConn: natsConn}
 
 	defer dbPool.Close() // open until main returns
 

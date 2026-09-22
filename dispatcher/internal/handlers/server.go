@@ -3,11 +3,13 @@ package handlers
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/nats-io/nats.go"
 )
 
 type Server struct {
 	DatabasePool *pgxpool.Pool
 	JWTSecret    string
+	NatsConn     *nats.Conn
 }
 
 func (s *Server) Ping(c *gin.Context) {
