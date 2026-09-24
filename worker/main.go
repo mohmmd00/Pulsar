@@ -2,9 +2,14 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
+
+	"github.com/mohmmd00/Pulsar/worker/internal/handler"
+	"github.com/mohmmd00/Pulsar/worker/internal/models"
+	"github.com/mohmmd00/Pulsar/worker/internal/service"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
@@ -30,9 +35,23 @@ func main() {
 	}
 	defer dbPool.Close()
 
-	_, err = natsConn.Subscribe("notifications.*", func(msg *nats.Msg) {
-		fmt.Println("Received message on subject:", msg.Subject)
-		fmt.Println("Payload:", string(msg.Data))
+	worker := handler.Worker{DatabasePool: dbPool, NatsConn: natsConn}
+
+	_, err = worker.NatsConn.Subscribe("notifications.*", func(msg *nats.Msg) {
+
+		event := models.NotificationEvent{}
+		unmarshErr := json.Unmarshal(msg.Data, &event)
+		if unmarshErr != nil {
+			fmt.Println("failed to un marshal recieved notification into binding model : ", unmarshErr)
+		}
+
+		processErr := service.ProcessNotification(event, worker.DatabasePool, context.Background())
+		if processErr != nil {
+			fmt.Println(processErr)
+		}
+
+		fmt.Printf("notification %s status has been changed !\n", event.NotificationID)
+
 	})
 	if err != nil {
 		log.Fatal("Error subscribing to NATS subject")
