@@ -6,6 +6,10 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
+	"strconv"
+	"sync"
+	"time"
 
 	"github.com/mohmmd00/Pulsar/worker/internal/handler"
 	"github.com/mohmmd00/Pulsar/worker/internal/models"
@@ -23,40 +27,72 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 
-	natsConn, err := nats.Connect(os.Getenv("NATS_URL"))
-	if err != nil {
+	natsConn, natsConErr := nats.Connect(os.Getenv("NATS_URL"))
+	if natsConErr != nil {
 		log.Fatal("Error connecting to NATS.")
 	}
 	defer natsConn.Close()
 
-	dbPool, err := pgxpool.New(context.Background(), os.Getenv("DATABASE_URL"))
-	if err != nil {
+	dbPool, pgxCraftErr := pgxpool.New(context.Background(), os.Getenv("DATABASE_URL"))
+	if pgxCraftErr != nil {
 		log.Fatal("Error crafting connection to db.")
 	}
 	defer dbPool.Close()
 
+	concurrencyStr := os.Getenv("WORKER_CONCURRENCY")
+	concurrency, concurLoadErr := strconv.Atoi(concurrencyStr)
+	if concurLoadErr != nil {
+		log.Fatal("falied to load concurency number.")
+	}
+
 	worker := handler.Worker{DatabasePool: dbPool, NatsConn: natsConn}
 
-	_, err = worker.NatsConn.Subscribe("notifications.*", func(msg *nats.Msg) {
+	//signals
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt)
+
+	//waitgroup
+	var wg sync.WaitGroup
+
+	//channel
+	eventsInChan := make(chan models.NotificationEvent, concurrency*10)
+
+	sub, subErr := worker.NatsConn.Subscribe("notifications.*", func(msg *nats.Msg) {
 
 		event := models.NotificationEvent{}
 		unmarshErr := json.Unmarshal(msg.Data, &event)
 		if unmarshErr != nil {
 			fmt.Println("failed to un marshal recieved notification into binding model : ", unmarshErr)
+			return
 		}
 
-		processErr := service.ProcessNotification(event, worker.DatabasePool, context.Background())
-		if processErr != nil {
-			fmt.Println(processErr)
-		}
-
-		fmt.Printf("notification %s status has been changed !\n", event.NotificationID)
-
+		eventsInChan <- event //put every new message into channel queue for go routines to pick one
 	})
-	if err != nil {
+	if subErr != nil {
 		log.Fatal("Error subscribing to NATS subject")
 	}
 
-	select {} // block forever, keeping main() alive so the subscription keeps listening
+	for i := 0; i < concurrency; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for event := range eventsInChan {
+				processErr := service.ProcessNotification(event, worker.DatabasePool, context.Background())
+				if processErr != nil {
+					fmt.Println(processErr)
+				} else {
+					fmt.Printf("%s notification %s status has been changed !\n", time.Now(), event.NotificationID)
+				}
+			}
+		}()
+
+	}
+
+	<-sigChan // close up call
+	fmt.Println("shutting down, no longer accepting new work...")
+	sub.Unsubscribe()   // closing nats connection
+	close(eventsInChan) // closing channel so no more events pile up in channel queue
+	wg.Wait()           // doesnt close until every procees processes
+	fmt.Println("all workers finished, exiting cleanly")
 
 }
