@@ -20,8 +20,13 @@ func GetNotificationByID(noteID uuid.UUID, pool *pgxpool.Pool, ctx context.Conte
 	return note, nil
 }
 
-func UpdateNotificationStatus(noteID uuid.UUID, status string, pool *pgxpool.Pool, ctx context.Context) error { //increment attemps as the numbers this functions called
+func UpdateNotificationStatus(noteID uuid.UUID, status string, incrementAttempts bool, pool *pgxpool.Pool, ctx context.Context) error { //increment attemps as the numbers this functions called
 
-	_, execErr := pool.Exec(ctx, "UPDATE notifications SET status = $1 ,updated_at = $2 , attempts = attempts + 1  WHERE id = $3", status, time.Now(), noteID)
-	return execErr
+	if incrementAttempts {
+		_, execErr := pool.Exec(ctx, "UPDATE notifications SET status = $1 ,updated_at = $2 , attempts = attempts + 1  WHERE id = $3", status, time.Now(), noteID)
+		return execErr
+	}
+	_, err := pool.Exec(ctx, "UPDATE notifications SET status = $1, updated_at = $2 WHERE id = $3", status, time.Now(), noteID)
+	return err
+
 }

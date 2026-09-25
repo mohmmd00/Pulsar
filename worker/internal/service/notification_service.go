@@ -20,19 +20,24 @@ func ProcessNotification(noteEvent models.NotificationEvent, pool *pgxpool.Pool,
 		return fmt.Errorf(errMsg+"%w", getNoteErr)
 	}
 
-	time.Sleep(2 * time.Second)
+	//repository layer
+	statToProcessingErr := repository.UpdateNotificationStatus(fetchedNote.ID, "processing", false, pool, ctx) //do not increment attempt
+	if statToProcessingErr != nil {
+		return fmt.Errorf(errMsg+"%w", statToProcessingErr)
+	}
 
-	newStatus := "failed"  // high chance to fail to process notification 
+	time.Sleep(3 * time.Second)
+
+	newStatus := "failed"  // high chance to fail to process notification
 	if rand.Intn(10) > 7 { // only 8 and 9
 		newStatus = "sent"
 	}
 
 	//repository layer
-	repoErr := repository.UpdateNotificationStatus(fetchedNote.ID , newStatus , pool , ctx)
-	if repoErr != nil {
-		return fmt.Errorf(errMsg +"%w" , repoErr)
+	statOnChanceErr := repository.UpdateNotificationStatus(fetchedNote.ID, newStatus, true, pool, ctx) //do increment attempt
+	if statOnChanceErr != nil {
+		return fmt.Errorf(errMsg+"%w", statOnChanceErr)
 	}
 	return nil
-	
 
 }
