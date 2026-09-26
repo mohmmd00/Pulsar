@@ -38,6 +38,24 @@ func ProcessNotification(noteEvent models.NotificationEvent, pool *pgxpool.Pool,
 	if statOnChanceErr != nil {
 		return fmt.Errorf(errMsg+"%w", statOnChanceErr)
 	}
+
+	var result string
+	var errMessage string
+
+	if newStatus == "failed" {
+		result = "failure"
+		errMessage = "failed to process notification"
+	} else {
+		result = "success"
+		errMessage = ""
+	}
+
+	noteLogErr := repository.CreateNotificationLog(models.NewNotificationLog(fetchedNote.ID, result, errMessage), pool, ctx)
+
+	if noteLogErr != nil {
+		fmt.Println("failed to write notification log:", noteLogErr)
+	}
+
 	return nil
 
 }

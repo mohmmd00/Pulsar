@@ -81,7 +81,7 @@ func main() {
 				if processErr != nil {
 					fmt.Println(processErr)
 				} else {
-					fmt.Printf("%s notification %s status has been changed !\n", time.Now(), event.NotificationID)
+					log.Printf("notification %s: %s", event.NotificationID, time.Now().Format(time.Kitchen))
 				}
 			}
 		}()

@@ -26,7 +26,13 @@ func UpdateNotificationStatus(noteID uuid.UUID, status string, incrementAttempts
 		_, execErr := pool.Exec(ctx, "UPDATE notifications SET status = $1 ,updated_at = $2 , attempts = attempts + 1  WHERE id = $3", status, time.Now(), noteID)
 		return execErr
 	}
-	_, err := pool.Exec(ctx, "UPDATE notifications SET status = $1, updated_at = $2 WHERE id = $3", status, time.Now(), noteID)
-	return err
+	_, execErr := pool.Exec(ctx, "UPDATE notifications SET status = $1, updated_at = $2 WHERE id = $3", status, time.Now(), noteID)
+	return execErr
+}
 
+func CreateNotificationLog(notiflog models.NotificationLog, pool *pgxpool.Pool, ctx context.Context) error {
+	_, err := pool.Exec(ctx, "INSERT INTO notification_logs (id , notification_id , result , error_message , created_at) VALUES ($1,$2,$3,$4,$5)",
+		notiflog.ID, notiflog.NotificationID, notiflog.Result, notiflog.ErrorMessage, notiflog.CreatedAt)
+
+	return err
 }
