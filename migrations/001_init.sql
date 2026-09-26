@@ -19,7 +19,6 @@ CREATE TABLE notifications (
 CREATE TABLE notification_logs (
     id UUID PRIMARY KEY ,
     notification_id UUID NOT NULL REFERENCES notifications(id),
-    attempt_number INT NOT NULL,
     result TEXT NOT NULL CHECK (result IN ('success', 'failure')),
     error_message TEXT,
     created_at TIMESTAMPTZ NOT NULL
