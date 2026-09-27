@@ -34,7 +34,7 @@ func (s *Server) LoginHandler(ctx *gin.Context) {
 		return
 	}
 
-	tknAssigned, tknErr := service.LoginUser(req.Email, req.Password, s.DatabasePool, ctx.Request.Context(), s.JWTSecret)
+	tknAssigned, tknErr := service.LoginUser(req.Email, req.Password, s.DatabasePool, s.JWTSecret, s.JwtAccTime, ctx.Request.Context())
 
 	if tknErr != nil {
 		ctx.JSON(401, gin.H{"error": tknErr.Error()})

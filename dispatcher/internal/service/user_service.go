@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/mohmmd00/Pulsar/dispatcher/internal/models"
 	"github.com/mohmmd00/Pulsar/dispatcher/internal/repository"
@@ -41,14 +42,14 @@ func RegisterUser(email string, password string, pool *pgxpool.Pool, ctx context
 
 }
 
-func LoginUser(email string, password string, pool *pgxpool.Pool, ctx context.Context, secret string) (jwt string, err error) {
+func LoginUser(email string, password string, pool *pgxpool.Pool, secret string, accTime time.Duration, ctx context.Context) (jwt string, err error) {
 	errMsg := "couldnt login user : "
 
 	if email == "" || password == "" {
 		return "", errors.New(errMsg + "invalid inputs")
 	}
 
-	//repository layer 
+	//repository layer
 	fetchedUser, repoErr := repository.GetUserByEmail(email, pool, ctx)
 
 	if repoErr != nil {
@@ -62,7 +63,7 @@ func LoginUser(email string, password string, pool *pgxpool.Pool, ctx context.Co
 		return "", fmt.Errorf(errMsg+"%w", cryptErr) //send back actual error not plain text
 	}
 
-	tknAssigned, tknErr := webToken.GenerateToken(fetchedUser.ID, secret)
+	tknAssigned, tknErr := webToken.GenerateToken(fetchedUser.ID, secret, accTime)
 	if tknErr != nil {
 		return "", fmt.Errorf(errMsg+"%w", tknErr)
 	}

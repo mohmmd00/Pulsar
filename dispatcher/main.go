@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"time"
 
 	"github.com/mohmmd00/Pulsar/dispatcher/internal/handlers"
 	"github.com/mohmmd00/Pulsar/dispatcher/internal/middleware"
@@ -31,15 +32,23 @@ func main() {
 	if err != nil {
 		log.Fatal("Error crafting connection to db.") // this loog using os.exit(1) so it will crash if used
 	}
+	defer dbPool.Close() // open until main returns
 
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
 		log.Fatal("Error recieving Jwt secret.")
 	}
 
-	srv := &handlers.Server{DatabasePool: dbPool, JWTSecret: jwtSecret, NatsConn: natsConn}
+	jwtAccTime, parseErr := time.ParseDuration(os.Getenv("JWT_ACCESS_TOKEN_TTL"))
+	if parseErr != nil {
+		log.Fatal("Error parsing JWT_ACCESS_TOKEN_TTL: invalid duration format")
+	}
 
-	defer dbPool.Close() // open until main returns
+	srv := &handlers.Server{
+		DatabasePool:  dbPool,
+		JWTSecret:     jwtSecret,
+		NatsConn:      natsConn,
+		JwtAccTime: jwtAccTime}
 
 	router := gin.Default()
 
