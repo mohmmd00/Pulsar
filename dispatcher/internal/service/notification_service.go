@@ -46,6 +46,12 @@ func SubmitNotification(userID uuid.UUID, channel string, recipient string, mess
 			return newNotification, fmt.Errorf(errMsg+"%w", pubErr)
 		}
 
+
+		natsFlushErr := natsConn.Flush() // flush if dissconnected 
+		if natsFlushErr != nil {
+			return newNotification, fmt.Errorf(errMsg+"%w", natsFlushErr)
+		}
+
 	default:
 		return models.Notification{}, errors.New(errMsg + "invalid channel")
 	}
