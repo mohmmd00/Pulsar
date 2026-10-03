@@ -39,16 +39,23 @@ func main() {
 		log.Fatal("Error recieving Jwt secret.")
 	}
 
-	jwtAccTime, parseErr := time.ParseDuration(os.Getenv("JWT_ACCESS_TOKEN_TTL"))
-	if parseErr != nil {
+	jwtAccTime, accessParseErr := time.ParseDuration(os.Getenv("JWT_ACCESS_TOKEN_TTL"))
+	if accessParseErr != nil {
 		log.Fatal("Error parsing JWT_ACCESS_TOKEN_TTL: invalid duration format")
+	}
+	jwtRefreshTime, refreshParseErr := time.ParseDuration(os.Getenv("JWT_REFRESH_TOKEN_TTL"))
+	if refreshParseErr != nil {
+		log.Fatal("Error parsing JWT_REFRESH_TOKEN_TTL: invalid duration format")
+
 	}
 
 	srv := &handlers.Server{
-		DatabasePool:  dbPool,
-		JWTSecret:     jwtSecret,
-		NatsConn:      natsConn,
-		JwtAccTime: jwtAccTime}
+		DatabasePool:   dbPool,
+		JWTSecret:      jwtSecret,
+		NatsConn:       natsConn,
+		JwtAccTime:     jwtAccTime,
+		JwtRefreshTime: jwtRefreshTime,
+	}
 
 	router := gin.Default()
 

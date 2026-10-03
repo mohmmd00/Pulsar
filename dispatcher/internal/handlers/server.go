@@ -9,10 +9,11 @@ import (
 )
 
 type Server struct {
-	DatabasePool *pgxpool.Pool
-	JWTSecret    string
-	NatsConn     *nats.Conn
-	JwtAccTime   time.Duration
+	DatabasePool   *pgxpool.Pool
+	JWTSecret      string
+	NatsConn       *nats.Conn
+	JwtAccTime     time.Duration
+	JwtRefreshTime time.Duration
 }
 
 func (s *Server) Ping(c *gin.Context) {

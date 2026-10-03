@@ -42,31 +42,37 @@ func RegisterUser(email string, password string, pool *pgxpool.Pool, ctx context
 
 }
 
-func LoginUser(email string, password string, pool *pgxpool.Pool, secret string, accTime time.Duration, ctx context.Context) (jwt string, err error) {
+func LoginUser(email string, password string, pool *pgxpool.Pool, secret string, accTime time.Duration, refTime time.Duration, ctx context.Context) (accJwtTkn string, refJwtTkn string, err error) {
 	errMsg := "couldnt login user : "
 
 	if email == "" || password == "" {
-		return "", errors.New(errMsg + "invalid inputs")
+		return "", "", errors.New(errMsg + "invalid inputs")
 	}
 
 	//repository layer
 	fetchedUser, repoErr := repository.GetUserByEmail(email, pool, ctx)
 
 	if repoErr != nil {
-		return "", fmt.Errorf(errMsg+"%w", repoErr)
+		return "", "", fmt.Errorf(errMsg+"%w", repoErr)
 	}
 
 	//compare hash
 	cryptErr := bcrypt.CompareHashAndPassword([]byte(fetchedUser.PasswordHash), []byte(password))
 
 	if cryptErr != nil {
-		return "", fmt.Errorf(errMsg+"%w", cryptErr) //send back actual error not plain text
+		return "", "", fmt.Errorf(errMsg+"%w", cryptErr) //send back actual error not plain text
 	}
 
-	tknAssigned, tknErr := webToken.GenerateToken(fetchedUser.ID, secret, accTime)
-	if tknErr != nil {
-		return "", fmt.Errorf(errMsg+"%w", tknErr)
+	//credential accepted
+	accTknAssigned, accTknErr := webToken.GenerateToken(fetchedUser.ID, secret, accTime)
+	if accTknErr != nil {
+		return "", "", fmt.Errorf(errMsg+"%w", accTknErr)
+	}
+	rawTknAssigned, _ ,refTknErr := IssueRefreshToken(fetchedUser.ID, refTime, pool, ctx)
+
+	if refTknErr != nil {
+		return "", "", fmt.Errorf(errMsg+"%w", refTknErr)
 	}
 
-	return tknAssigned, nil
+	return accTknAssigned, rawTknAssigned , nil
 }

@@ -34,13 +34,12 @@ func (s *Server) LoginHandler(ctx *gin.Context) {
 		return
 	}
 
-	tknAssigned, tknErr := service.LoginUser(req.Email, req.Password, s.DatabasePool, s.JWTSecret, s.JwtAccTime, ctx.Request.Context())
-
-	if tknErr != nil {
-		ctx.JSON(401, gin.H{"error": tknErr.Error()})
+	accTknAssigned, refTknAssigned, AssignedErr := service.LoginUser(req.Email, req.Password, s.DatabasePool, s.JWTSecret, s.JwtAccTime, s.JwtRefreshTime, ctx.Request.Context())
+	if AssignedErr != nil {
+		ctx.JSON(401, gin.H{"error": AssignedErr.Error()})
 		return
 	}
 
-	ctx.JSON(201, gin.H{"message": "Operation successful", "token": tknAssigned})
+	ctx.JSON(201, gin.H{"message": "Operation successful", "access token": accTknAssigned, "refresh token": refTknAssigned})
 
 }
